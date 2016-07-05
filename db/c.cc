@@ -31,6 +31,7 @@
 #include "rocksdb/slice_transform.h"
 #include "rocksdb/table.h"
 #include "rocksdb/utilities/backupable_db.h"
+#include "rocksdb/listener.h"
 #include "utilities/merge_operators.h"
 
 using rocksdb::Cache;
@@ -77,6 +78,8 @@ using rocksdb::BackupableDBOptions;
 using rocksdb::BackupInfo;
 using rocksdb::RestoreOptions;
 using rocksdb::CompactRangeOptions;
+using rocksdb::EventListener;
+using rocksdb::CompactionJobInfo;
 
 using std::shared_ptr;
 
@@ -1493,6 +1496,76 @@ void rocksdb_options_set_max_bytes_for_level_multiplier_additional(
 
 void rocksdb_options_enable_statistics(rocksdb_options_t* opt) {
   opt->rep.statistics = rocksdb::CreateDBStatistics();
+}
+
+class C_Event_Listener : public EventListener {
+ public:
+ public:
+  C_Event_Listener() {}
+  ~C_Event_Listener() {}
+  void* context;
+  compaction_started_cb compaction_started;
+  compaction_completed_cb compaction_completed;
+
+  virtual void OnCompactionStarted(DB* /*db*/, const CompactionJobInfo& ci) {
+    if (compaction_completed) {
+        compaction_job_info info;
+        info.compaction_reason = (compaction_reason)(int)ci.compaction_reason;
+        static_assert((int)kFilesMarkedForCompaction==(int)rocksdb::CompactionReason::kFilesMarkedForCompaction, "enum changed");
+        info.thread_id = ci.thread_id;
+        info.job_id = ci.job_id;
+        info.base_input_level = ci.base_input_level;
+        info.output_level = ci.output_level;
+        compaction_started(context, &info);
+    }
+  }
+  
+  virtual void OnCompactionCompleted(DB* /*db*/, const CompactionJobInfo& ci) {
+    if (compaction_completed) {
+        compaction_job_info info;
+        compaction_job_stats stats;
+        info.stats = &stats;
+        info.status.code = (code)(int)ci.status.code();
+        info.status.subcode = (sub_code)(int)ci.status.subcode();
+        info.compaction_reason = (compaction_reason)(int)ci.compaction_reason;
+        static_assert((int)kTryAgain==(int)Status::Code::kTryAgain, "enum changed");
+        static_assert((int)kMaxSubCode==(int)Status::SubCode::kMaxSubCode, "enum changed");
+        static_assert((int)kFilesMarkedForCompaction==(int)rocksdb::CompactionReason::kFilesMarkedForCompaction, "enum changed");
+        info.thread_id = ci.thread_id;
+        info.job_id = ci.job_id;
+        info.base_input_level = ci.base_input_level;
+        info.output_level = ci.output_level;
+        info.stats->elapsed_micros = ci.stats.elapsed_micros;
+        info.stats->num_input_records = ci.stats.num_input_records;
+        info.stats->num_input_files = ci.stats.num_input_files;
+        info.stats->num_input_files_at_output_level = ci.stats.num_input_files_at_output_level;
+        info.stats->num_output_records = ci.stats.num_output_records;
+        info.stats->num_output_files = ci.stats.num_output_files;
+        info.stats->is_manual_compaction = ci.stats.is_manual_compaction;
+        info.stats->total_input_bytes = ci.stats.total_input_bytes;
+        info.stats->total_output_bytes = ci.stats.total_output_bytes;
+        info.stats->num_records_replaced = ci.stats.num_records_replaced;
+        info.stats->total_input_raw_key_bytes = ci.stats.total_input_raw_key_bytes;
+        info.stats->total_input_raw_value_bytes = ci.stats.total_input_raw_value_bytes;
+        info.stats->num_input_deletion_records = ci.stats.num_input_deletion_records;
+        info.stats->num_expired_deletion_records = ci.stats.num_expired_deletion_records;
+        info.stats->num_corrupt_keys = ci.stats.num_corrupt_keys;
+        info.stats->file_write_nanos = ci.stats.file_write_nanos;
+        info.stats->file_range_sync_nanos = ci.stats.file_range_sync_nanos;
+        info.stats->file_fsync_nanos = ci.stats.file_fsync_nanos;
+        info.stats->file_prepare_write_nanos = ci.stats.file_prepare_write_nanos; 
+        compaction_completed(context, &info);
+    }
+  }
+};
+
+void rocksdb_options_add_event_listener_cb(
+    rocksdb_options_t* opt, void* context, compaction_started_cb comp_start, compaction_completed_cb comp_compl) {
+  C_Event_Listener *listener = new C_Event_Listener();
+  listener->context = context;
+  listener->compaction_started = comp_start;
+  listener->compaction_completed = comp_compl;
+  opt->rep.listeners.emplace_back(listener);
 }
 
 void rocksdb_options_set_num_levels(rocksdb_options_t* opt, int n) {
