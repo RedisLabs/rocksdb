@@ -2155,6 +2155,52 @@ Status DBImpl::ContinueBackgroundWork() {
   return Status::OK();
 }
 
+void DBImpl::NotifyOnCompactionStarted(
+    ColumnFamilyData* cfd, Compaction *c,
+    const int job_id) {
+#ifndef ROCKSDB_LITE
+  if (db_options_.listeners.size() == 0U) {
+    return;
+  }
+  mutex_.AssertHeld();
+  if (shutting_down_.load(std::memory_order_acquire)) {
+    return;
+  }
+  // release lock while notifying events
+  mutex_.Unlock();
+  {
+    CompactionJobInfo info;
+    info.cf_name = cfd->GetName();
+    info.thread_id = env_->GetThreadID();
+    info.job_id = job_id;
+    info.base_input_level = c->start_level();
+    info.output_level = c->output_level();
+    info.table_properties = c->GetOutputTableProperties();
+    info.compaction_reason = c->compaction_reason();
+    for (size_t i = 0; i < c->num_input_levels(); ++i) {
+      for (const auto fmd : *c->inputs(i)) {
+        auto fn = TableFileName(db_options_.db_paths, fmd->fd.GetNumber(),
+                                fmd->fd.GetPathId());
+        info.input_files.push_back(fn);
+        if (info.table_properties.count(fn) == 0) {
+          std::shared_ptr<const TableProperties> tp;
+          auto s = cfd->current()->GetTableProperties(&tp, fmd, &fn);
+          if (s.ok()) {
+            info.table_properties[fn] = tp;
+          }
+        }
+      }
+    }
+    for (auto listener : db_options_.listeners) {
+      listener->OnCompactionStarted(this, info);
+    }
+  }
+  mutex_.Lock();
+  // no need to signal bg_cv_ as it will be signaled at the end of the
+  // flush process.
+#endif  // ROCKSDB_LITE
+}
+
 void DBImpl::NotifyOnCompactionCompleted(
     ColumnFamilyData* cfd, Compaction *c, const Status &st,
     const CompactionJobStats& compaction_job_stats,
@@ -3155,6 +3201,12 @@ Status DBImpl::BackgroundCompaction(bool* made_progress,
         }
       }
     }
+  }
+
+  if (c != nullptr) {
+    NotifyOnCompactionStarted(
+        c->column_family_data(), c.get(),
+        job_context->job_id);
   }
 
   if (!c) {
