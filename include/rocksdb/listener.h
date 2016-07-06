@@ -166,6 +166,16 @@ struct CompactionJobInfo {
 class EventListener {
  public:
   // A call-back function to RocksDB which will be called whenever a
+  // registered RocksDB starts flushing a file.  The default implementation is
+  // no-op.
+  //
+  // Note that the this function must be implemented in a way such that
+  // it should not run for an extended period of time before the function
+  // returns.  Otherwise, RocksDB may be blocked.
+  virtual void OnFlushStarted(DB* /*db*/,
+                                const FlushJobInfo& /*flush_job_info*/) {}
+
+  // A call-back function to RocksDB which will be called whenever a
   // registered RocksDB flushes a file.  The default implementation is
   // no-op.
   //
