@@ -242,7 +242,57 @@ typedef struct compaction_job_info {
   // about this compaction.
   compaction_job_stats *stats; 
 }compaction_job_info;    
+
+typedef struct flash_table_properties {
+  // the total size of all data blocks.
+  uint64_t data_size;
+  // the size of index block.
+  uint64_t index_size;
+  // the size of filter block.
+  uint64_t filter_size;
+  // total raw key size
+  uint64_t raw_key_size;
+  // total raw value size
+  uint64_t raw_value_size;
+  // the number of blocks in this table
+  uint64_t num_data_blocks;
+  // the number of entries in this table
+  uint64_t num_entries;
+  // format version, reserved for backward compatibility
+  uint64_t format_version;
+  // If 0, key is variable length. Otherwise number of bytes for each key.
+  uint64_t fixed_key_len;
+}flash_table_properties;
     
+typedef struct flush_job_info {
+  // the name of the column family
+  const char* cf_name;
+  // the path to the newly created file
+  const char* file_path;
+  // the id of the thread that completed this flush job.
+  uint64_t thread_id;
+  // the job id, which is unique in the same thread.
+  int job_id;
+  // If true, then rocksdb is currently slowing-down all writes to prevent
+  // creating too many Level 0 files as compaction seems not able to
+  // catch up the write request speed.  This indicates that there are
+  // too many files in Level 0.
+  int triggered_writes_slowdown;
+  // If true, then rocksdb is currently blocking any writes to prevent
+  // creating more L0 files.  This indicates that there are too many
+  // files in level 0.  Compactions should try to compact L0 files down
+  // to lower levels as soon as possible.
+  int triggered_writes_stop;
+  // The smallest sequence number in the newly created file
+  uint64_t smallest_seqno;
+  // The largest sequence number in the newly created file
+  uint64_t largest_seqno;
+  // Table properties of the table being flushed
+  flash_table_properties table_properties;
+}flush_job_info;    
+
+typedef void (*flush_started_cb) (void* context, flush_job_info*);
+typedef void (*flush_completed_cb) (void* context, flush_job_info*);
 typedef void (*compaction_started_cb) (void* context, compaction_job_info*);
 typedef void (*compaction_completed_cb) (void* context, compaction_job_info*);
 
@@ -424,6 +474,10 @@ extern ROCKSDB_LIBRARY_API void rocksdb_release_snapshot(
    Else returns a pointer to a malloc()-ed null-terminated value. */
 extern ROCKSDB_LIBRARY_API char* rocksdb_property_value(rocksdb_t* db,
                                                         const char* propname);
+/* returns 0 on success, -1 otherwise */
+int rocksdb_property_int(
+    rocksdb_t* db,
+    const char* propname, uint64_t *out_val);
 
 extern ROCKSDB_LIBRARY_API char* rocksdb_property_value_cf(
     rocksdb_t* db, rocksdb_column_family_handle_t* column_family,
@@ -711,7 +765,9 @@ rocksdb_options_set_max_bytes_for_level_multiplier_additional(
 extern ROCKSDB_LIBRARY_API void rocksdb_options_enable_statistics(
     rocksdb_options_t*);
 extern ROCKSDB_LIBRARY_API void rocksdb_options_add_event_listener_cb(
-    rocksdb_options_t*, void* context, compaction_started_cb, compaction_completed_cb);
+    rocksdb_options_t*, void* context, 
+    flush_started_cb flush_start, flush_completed_cb flush_compl, 
+    compaction_started_cb, compaction_completed_cb);
 
 /* returns a pointer to a malloc()-ed, null terminated string */
 extern ROCKSDB_LIBRARY_API char* rocksdb_options_statistics_get_string(
