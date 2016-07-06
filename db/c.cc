@@ -87,6 +87,7 @@ using rocksdb::RateLimiter;
 using rocksdb::NewGenericRateLimiter;
 using rocksdb::EventListener;
 using rocksdb::CompactionJobInfo;
+using rocksdb::FlushJobInfo;
 
 using std::shared_ptr;
 
@@ -904,6 +905,17 @@ char* rocksdb_property_value(
   }
 }
 
+int rocksdb_property_int(
+    rocksdb_t* db,
+    const char* propname, 
+    uint64_t *out_val) {
+  if (db->rep->GetIntProperty(Slice(propname), out_val)) {
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
 char* rocksdb_property_value_cf(
     rocksdb_t* db,
     rocksdb_column_family_handle_t* column_family,
@@ -1640,11 +1652,61 @@ class C_Event_Listener : public EventListener {
   C_Event_Listener() {}
   ~C_Event_Listener() {}
   void* context;
+  flush_started_cb flush_started;
+  flush_completed_cb flush_completed;
   compaction_started_cb compaction_started;
   compaction_completed_cb compaction_completed;
 
+  virtual void OnFlushStarted(DB* /*db*/, const FlushJobInfo& fi) {
+    if (flush_started) {
+      flush_job_info info;
+      info.cf_name = fi.cf_name.c_str();
+      info.file_path = fi.file_path.c_str();
+      info.thread_id = fi.thread_id;
+      info.job_id = fi.job_id;
+      info.triggered_writes_slowdown = fi.triggered_writes_slowdown;
+      info.triggered_writes_stop = fi.triggered_writes_stop;
+      info.smallest_seqno = fi.smallest_seqno;
+      info.largest_seqno = fi.largest_seqno;
+      info.table_properties.data_size = fi.table_properties.data_size;
+      info.table_properties.index_size = fi.table_properties.index_size;
+      info.table_properties.filter_size = fi.table_properties.filter_size;
+      info.table_properties.raw_key_size = fi.table_properties.raw_key_size;
+      info.table_properties.raw_value_size = fi.table_properties.raw_value_size;
+      info.table_properties.num_data_blocks = fi.table_properties.num_data_blocks;
+      info.table_properties.num_entries = fi.table_properties.num_entries;
+      info.table_properties.format_version = fi.table_properties.format_version;
+      info.table_properties.fixed_key_len = fi.table_properties.fixed_key_len;
+      flush_started(context, &info);
+    }
+  }
+  
+  virtual void OnFlushCompleted(DB* /*db*/, const FlushJobInfo& fi) {
+    if (flush_completed) {
+      flush_job_info info;
+      info.cf_name = fi.cf_name.c_str();
+      info.file_path = fi.file_path.c_str();
+      info.thread_id = fi.thread_id;
+      info.job_id = fi.job_id;
+      info.triggered_writes_slowdown = fi.triggered_writes_slowdown;
+      info.triggered_writes_stop = fi.triggered_writes_stop;
+      info.smallest_seqno = fi.smallest_seqno;
+      info.largest_seqno = fi.largest_seqno;
+      info.table_properties.data_size = fi.table_properties.data_size;
+      info.table_properties.index_size = fi.table_properties.index_size;
+      info.table_properties.filter_size = fi.table_properties.filter_size;
+      info.table_properties.raw_key_size = fi.table_properties.raw_key_size;
+      info.table_properties.raw_value_size = fi.table_properties.raw_value_size;
+      info.table_properties.num_data_blocks = fi.table_properties.num_data_blocks;
+      info.table_properties.num_entries = fi.table_properties.num_entries;
+      info.table_properties.format_version = fi.table_properties.format_version;
+      info.table_properties.fixed_key_len = fi.table_properties.fixed_key_len;
+      flush_completed(context, &info);
+    }
+  }
+  
   virtual void OnCompactionStarted(DB* /*db*/, const CompactionJobInfo& ci) {
-    if (compaction_completed) {
+    if (compaction_started) {
         compaction_job_info info;
         info.compaction_reason = (compaction_reason)(int)ci.compaction_reason;
         static_assert((int)kFilesMarkedForCompaction==(int)rocksdb::CompactionReason::kFilesMarkedForCompaction, "enum changed");
@@ -1696,9 +1758,12 @@ class C_Event_Listener : public EventListener {
 };
 
 void rocksdb_options_add_event_listener_cb(
-    rocksdb_options_t* opt, void* context, compaction_started_cb comp_start, compaction_completed_cb comp_compl) {
+    rocksdb_options_t* opt, void* context, flush_started_cb flush_start, flush_completed_cb flush_compl, 
+    compaction_started_cb comp_start, compaction_completed_cb comp_compl) {
   C_Event_Listener *listener = new C_Event_Listener();
   listener->context = context;
+  listener->flush_started = flush_start;
+  listener->flush_completed = flush_compl;
   listener->compaction_started = comp_start;
   listener->compaction_completed = comp_compl;
   opt->rep.listeners.emplace_back(listener);
