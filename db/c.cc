@@ -860,9 +860,9 @@ void rocksdb_create_iterators(
   }
 
   std::vector<Iterator*> res;
-  Status status = db->rep->NewIterators(opts->rep, column_families_vec, &res);
+  Status status_ = db->rep->NewIterators(opts->rep, column_families_vec, &res);
   assert(res.size() == size);
-  if (SaveError(errptr, status)) {
+  if (SaveError(errptr, status_)) {
     return;
   }
 
@@ -1415,6 +1415,14 @@ void rocksdb_options_set_cuckoo_table_factory(
   }
 }
 
+void rocksdb_set_options(
+    rocksdb_t* db, int count, const char* const keys[], const char* const values[], char** errptr) {
+        std::unordered_map<std::string, std::string> options_map;
+        for (int i=0; i<count; i++)
+            options_map[keys[i]] = values[i];
+        SaveError(errptr,
+            db->rep->SetOptions(options_map));
+    }
 
 rocksdb_options_t* rocksdb_options_create() {
   return new rocksdb_options_t;
@@ -1944,6 +1952,10 @@ void rocksdb_options_set_arena_block_size(
 
 void rocksdb_options_set_disable_auto_compactions(rocksdb_options_t* opt, int disable) {
   opt->rep.disable_auto_compactions = disable;
+}
+
+void rocksdb_options_set_optimize_filters_for_hits(rocksdb_options_t* opt, int v) {
+  opt->rep.optimize_filters_for_hits = v;
 }
 
 void rocksdb_options_set_delete_obsolete_files_period_micros(
