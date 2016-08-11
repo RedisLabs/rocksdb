@@ -667,6 +667,8 @@ extern ROCKSDB_LIBRARY_API void rocksdb_options_set_cuckoo_table_factory(
     rocksdb_options_t* opt, rocksdb_cuckoo_table_options_t* table_options);
 
 /* Options */
+extern ROCKSDB_LIBRARY_API void rocksdb_set_options(
+    rocksdb_t* db, int count, const char* const keys[], const char* const values[], char** errptr);
 
 extern ROCKSDB_LIBRARY_API rocksdb_options_t* rocksdb_options_create();
 extern ROCKSDB_LIBRARY_API void rocksdb_options_destroy(rocksdb_options_t*);
@@ -706,6 +708,8 @@ extern ROCKSDB_LIBRARY_API void rocksdb_options_set_info_log(rocksdb_options_t*,
                                                              rocksdb_logger_t*);
 extern ROCKSDB_LIBRARY_API void rocksdb_options_set_info_log_level(
     rocksdb_options_t*, int);
+extern ROCKSDB_LIBRARY_API void rocksdb_options_set_compaction_readahead_size(
+    rocksdb_options_t* opt, size_t s);
 extern ROCKSDB_LIBRARY_API void rocksdb_options_set_write_buffer_size(
     rocksdb_options_t*, size_t);
 extern ROCKSDB_LIBRARY_API void rocksdb_options_set_max_open_files(
@@ -833,6 +837,8 @@ rocksdb_options_set_max_sequential_skip_in_iterations(rocksdb_options_t*,
 extern ROCKSDB_LIBRARY_API void rocksdb_options_set_disable_data_sync(
     rocksdb_options_t*, int);
 extern ROCKSDB_LIBRARY_API void rocksdb_options_set_disable_auto_compactions(
+    rocksdb_options_t*, int);
+extern ROCKSDB_LIBRARY_API void rocksdb_options_set_optimize_filters_for_hits(
     rocksdb_options_t*, int);
 extern ROCKSDB_LIBRARY_API void
 rocksdb_options_set_delete_obsolete_files_period_micros(rocksdb_options_t*,
