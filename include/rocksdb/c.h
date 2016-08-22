@@ -209,7 +209,7 @@ typedef struct compaction_job_stats {
   uint64_t num_corrupt_keys;
 
   // Following counters are only populated if
-  // options.compaction_measure_io_stats = true;
+  // options.report_bg_io_stats = true;
 
   // Time spent on file's Append() call.
   uint64_t file_write_nanos;
@@ -826,6 +826,10 @@ extern ROCKSDB_LIBRARY_API void rocksdb_options_set_soft_rate_limit(
     rocksdb_options_t*, double);
 extern ROCKSDB_LIBRARY_API void rocksdb_options_set_hard_rate_limit(
     rocksdb_options_t*, double);
+extern ROCKSDB_LIBRARY_API void rocksdb_options_set_soft_pending_compaction_bytes_limit(
+    rocksdb_options_t* opt, size_t v);
+extern ROCKSDB_LIBRARY_API void rocksdb_options_set_hard_pending_compaction_bytes_limit(
+    rocksdb_options_t* opt, size_t v);
 extern ROCKSDB_LIBRARY_API void
 rocksdb_options_set_rate_limit_delay_max_milliseconds(rocksdb_options_t*,
                                                       unsigned int);

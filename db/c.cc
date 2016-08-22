@@ -1979,6 +1979,10 @@ void rocksdb_options_set_base_background_compactions(rocksdb_options_t* opt,
   opt->rep.base_background_compactions = n;
 }
 
+void rocksdb_options_set_base_background_compactions(rocksdb_options_t* opt, int n) {
+  opt->rep.base_background_compactions = n;
+}
+
 void rocksdb_options_set_max_background_flushes(rocksdb_options_t* opt, int n) {
   opt->rep.max_background_flushes = n;
 }
@@ -2006,6 +2010,14 @@ void rocksdb_options_set_soft_rate_limit(rocksdb_options_t* opt, double v) {
 
 void rocksdb_options_set_hard_rate_limit(rocksdb_options_t* opt, double v) {
   opt->rep.hard_rate_limit = v;
+}
+
+void rocksdb_options_set_soft_pending_compaction_bytes_limit(rocksdb_options_t* opt, size_t v) {
+  opt->rep.soft_pending_compaction_bytes_limit = v;
+}
+
+void rocksdb_options_set_hard_pending_compaction_bytes_limit(rocksdb_options_t* opt, size_t v) {
+  opt->rep.hard_pending_compaction_bytes_limit = v;
 }
 
 void rocksdb_options_set_rate_limit_delay_max_milliseconds(
