@@ -127,15 +127,17 @@ typedef enum {
     kExpired = 12,
     kTryAgain = 13,
 } code;
-  
+
 typedef enum {
     kNone = 0,
     kMutexTimeout = 1,
     kLockTimeout = 2,
     kLockLimit = 3,
+    kNoSpace = 4,
+    kDeadlock = 5,
     kMaxSubCode
 }sub_code;
-  
+
 typedef struct {
   code code;
   sub_code subcode;
@@ -160,7 +162,7 @@ typedef enum {
   // DB::SuggestCompactRange() marked files for compaction
   kFilesMarkedForCompaction,
 } compaction_reason;
-    
+
 
 typedef struct compaction_job_stats {
   // the elapsed time in micro of this compaction.
@@ -221,8 +223,8 @@ typedef struct compaction_job_stats {
   uint64_t file_fsync_nanos;
 
   // Time spent on preparing file write (falocate, etc)
-  uint64_t file_prepare_write_nanos; 
-}compaction_job_stats;  
+  uint64_t file_prepare_write_nanos;
+}compaction_job_stats;
 
 typedef struct compaction_job_info {
   // the status indicating whether the compaction was successful or not.
@@ -234,15 +236,15 @@ typedef struct compaction_job_info {
   // the smallest input level of the compaction.
   int base_input_level;
   // the output level of the compaction.
-  int output_level; 
+  int output_level;
 
   // Reason to run the compaction
   compaction_reason compaction_reason;
 
   // If non-null, this variable stores detailed information
   // about this compaction.
-  compaction_job_stats *stats; 
-}compaction_job_info;    
+  compaction_job_stats *stats;
+}compaction_job_info;
 
 typedef struct flash_table_properties {
   // the total size of all data blocks.
@@ -264,7 +266,7 @@ typedef struct flash_table_properties {
   // If 0, key is variable length. Otherwise number of bytes for each key.
   uint64_t fixed_key_len;
 }flash_table_properties;
-    
+
 typedef struct flush_job_info {
   // the name of the column family
   const char* cf_name;
@@ -290,7 +292,7 @@ typedef struct flush_job_info {
   uint64_t largest_seqno;
   // Table properties of the table being flushed
   flash_table_properties table_properties;
-}flush_job_info;    
+}flush_job_info;
 
 typedef void (*flush_started_cb) (void* context, flush_job_info*);
 typedef void (*flush_completed_cb) (void* context, flush_job_info*);
@@ -793,8 +795,8 @@ rocksdb_options_set_max_bytes_for_level_multiplier_additional(
 extern ROCKSDB_LIBRARY_API void rocksdb_options_enable_statistics(
     rocksdb_options_t*);
 extern ROCKSDB_LIBRARY_API void rocksdb_options_add_event_listener_cb(
-    rocksdb_options_t*, void* context, 
-    flush_started_cb flush_start, flush_completed_cb flush_compl, 
+    rocksdb_options_t*, void* context,
+    flush_started_cb flush_start, flush_completed_cb flush_compl,
     compaction_started_cb, compaction_completed_cb);
 
 /* returns a pointer to a malloc()-ed, null terminated string */

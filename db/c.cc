@@ -1688,7 +1688,7 @@ class C_Event_Listener : public EventListener {
       flush_started(context, &info);
     }
   }
-  
+
   virtual void OnFlushCompleted(DB* /*db*/, const FlushJobInfo& fi) {
     if (flush_completed) {
       flush_job_info info;
@@ -1712,7 +1712,7 @@ class C_Event_Listener : public EventListener {
       flush_completed(context, &info);
     }
   }
-  
+
   virtual void OnCompactionStarted(DB* /*db*/, const CompactionJobInfo& ci) {
     if (compaction_started) {
         compaction_job_info info;
@@ -1725,7 +1725,7 @@ class C_Event_Listener : public EventListener {
         compaction_started(context, &info);
     }
   }
-  
+
   virtual void OnCompactionCompleted(DB* /*db*/, const CompactionJobInfo& ci) {
     if (compaction_completed) {
         compaction_job_info info;
@@ -1759,14 +1759,14 @@ class C_Event_Listener : public EventListener {
         info.stats->file_write_nanos = ci.stats.file_write_nanos;
         info.stats->file_range_sync_nanos = ci.stats.file_range_sync_nanos;
         info.stats->file_fsync_nanos = ci.stats.file_fsync_nanos;
-        info.stats->file_prepare_write_nanos = ci.stats.file_prepare_write_nanos; 
+        info.stats->file_prepare_write_nanos = ci.stats.file_prepare_write_nanos;
         compaction_completed(context, &info);
     }
   }
 };
 
 void rocksdb_options_add_event_listener_cb(
-    rocksdb_options_t* opt, void* context, flush_started_cb flush_start, flush_completed_cb flush_compl, 
+    rocksdb_options_t* opt, void* context, flush_started_cb flush_start, flush_completed_cb flush_compl,
     compaction_started_cb comp_start, compaction_completed_cb comp_compl) {
   C_Event_Listener *listener = new C_Event_Listener();
   listener->context = context;
@@ -1972,11 +1972,6 @@ void rocksdb_options_set_max_write_buffer_number_to_maintain(
 
 void rocksdb_options_set_max_background_compactions(rocksdb_options_t* opt, int n) {
   opt->rep.max_background_compactions = n;
-}
-
-void rocksdb_options_set_base_background_compactions(rocksdb_options_t* opt,
-                                                     int n) {
-  opt->rep.base_background_compactions = n;
 }
 
 void rocksdb_options_set_base_background_compactions(rocksdb_options_t* opt, int n) {
