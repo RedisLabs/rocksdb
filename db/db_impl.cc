@@ -1972,7 +1972,7 @@ void DBImpl::NotifyOnFlushStarted(ColumnFamilyData* cfd,
                                     const MutableCFOptions& mutable_cf_options,
                                     int job_id, TableProperties prop) {
 #ifndef ROCKSDB_LITE
-  if (db_options_.listeners.size() == 0U) {
+  if (immutable_db_options_.listeners.size() == 0U) {
     return;
   }
   mutex_.AssertHeld();
@@ -1992,7 +1992,7 @@ void DBImpl::NotifyOnFlushStarted(ColumnFamilyData* cfd,
     info.cf_name = cfd->GetName();
     // TODO(yhchiang): make db_paths dynamic in case flush does not
     //                 go to L0 in the future.
-    info.file_path = MakeTableFileName(db_options_.db_paths[0].path,
+    info.file_path = MakeTableFileName(immutable_db_options_.db_paths[0].path,
                                        file_meta->fd.GetNumber());
     info.thread_id = env_->GetThreadID();
     info.job_id = job_id;
@@ -2001,7 +2001,7 @@ void DBImpl::NotifyOnFlushStarted(ColumnFamilyData* cfd,
     info.smallest_seqno = file_meta->smallest_seqno;
     info.largest_seqno = file_meta->largest_seqno;
     info.table_properties = prop;
-    for (auto listener : db_options_.listeners) {
+    for (auto listener : immutable_db_options_.listeners) {
       listener->OnFlushStarted(this, info);
     }
   }
@@ -2408,7 +2408,7 @@ void DBImpl::NotifyOnCompactionStarted(
     ColumnFamilyData* cfd, Compaction *c,
     const int job_id) {
 #ifndef ROCKSDB_LITE
-  if (db_options_.listeners.size() == 0U) {
+  if (immutable_db_options_.listeners.size() == 0U) {
     return;
   }
   mutex_.AssertHeld();
@@ -2428,7 +2428,7 @@ void DBImpl::NotifyOnCompactionStarted(
     info.compaction_reason = c->compaction_reason();
     for (size_t i = 0; i < c->num_input_levels(); ++i) {
       for (const auto fmd : *c->inputs(i)) {
-        auto fn = TableFileName(db_options_.db_paths, fmd->fd.GetNumber(),
+        auto fn = TableFileName(immutable_db_options_.db_paths, fmd->fd.GetNumber(),
                                 fmd->fd.GetPathId());
         info.input_files.push_back(fn);
         if (info.table_properties.count(fn) == 0) {
@@ -2440,7 +2440,7 @@ void DBImpl::NotifyOnCompactionStarted(
         }
       }
     }
-    for (auto listener : db_options_.listeners) {
+    for (auto listener : immutable_db_options_.listeners) {
       listener->OnCompactionStarted(this, info);
     }
   }
