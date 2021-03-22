@@ -99,7 +99,7 @@ Status ReadAligned(int fd, Slice* data, const uint64_t offset,
     status =
         pread(fd, scratch + bytes_read, size - bytes_read, offset + bytes_read);
     if (status <= 0) {
-      if (errno == EINTR) {
+      if (status < 0 && errno == EINTR) {
         continue;
       }
       break;
@@ -310,7 +310,7 @@ Status PosixRandomAccessFile::Read(uint64_t offset, size_t n, Slice* result,
     r = pread(fd_, ptr, left, static_cast<off_t>(offset));
 
     if (r <= 0) {
-      if (errno == EINTR) {
+      if (r < 0 && errno == EINTR) {
         continue;
       }
       break;
