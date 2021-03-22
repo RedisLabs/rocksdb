@@ -250,17 +250,6 @@ EOF
         JAVA_LDFLAGS="$JAVA_LDFLAGS -lz"
     fi
 
-    # Test whether bzip library is installed
-    $CXX $CFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
-      #include <bzlib.h>
-      int main() {}
-EOF
-    if [ "$?" = 0 ]; then
-        COMMON_FLAGS="$COMMON_FLAGS -DBZIP2"
-        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lbz2"
-        JAVA_LDFLAGS="$JAVA_LDFLAGS -lbz2"
-    fi
-
     # Test whether lz4 library is installed
     $CXX $CFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
       #include <lz4.h>
