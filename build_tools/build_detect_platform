@@ -297,7 +297,7 @@ EOF
     fi
 
     # Test whether jemalloc is available
-    if echo 'int main() {}' | $CXX $CFLAGS -x c++ - -o /dev/null -ljemalloc \
+    if echo 'int main() {}' | $CXX $CFLAGS $EXTRA_CFLAGS -x c++ - -o /dev/null $LDFLAGS $EXTRA_LDFLAGS -ljemalloc \
       2>/dev/null; then
         PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -ljemalloc"
         JAVA_LDFLAGS="$JAVA_LDFLAGS -ljemalloc"
